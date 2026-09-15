@@ -18,6 +18,17 @@ jobs:
       - name: Executar robô de busca e categorização
         run: python3 scripts/catalog_robot.py
 
+      - name: Validar catálogo gerado
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          p = Path('catalog/robot-catalog.json')
+          data = json.loads(p.read_text(encoding='utf-8'))
+          assert isinstance(data.get('items'), list)
+          print(f"Catálogo automático validado: {len(data['items'])} itens")
+          PY
+
       - name: Publicar alterações do catálogo automático
         run: |
           git config user.name 'guia-natural-bot'
