@@ -1,0 +1,31 @@
+name: Robô automático do catálogo
+
+on:
+  schedule:
+    - cron: '17 6 * * 1,4'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Executar robô de busca e categorização
+        run: python3 scripts/catalog_robot.py
+
+      - name: Publicar alterações do catálogo automático
+        run: |
+          git config user.name 'guia-natural-bot'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add catalog/robot-catalog.json
+          if git diff --cached --quiet; then
+            echo 'Nenhuma alteração no catálogo automático.'
+            exit 0
+          fi
+          git commit -m 'Atualiza catálogo automático'
+          git push
