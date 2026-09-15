@@ -18,6 +18,7 @@ concurrency:
 env:
   PUBLIC_PAGE: firebase-public-v2.html
   CATALOG_2: catalog/lote-02-plantas-medicinais.json
+  ROBOT_CATALOG: catalog/robot-catalog.json
 
 jobs:
   build:
@@ -43,51 +44,58 @@ jobs:
           set -euo pipefail
           test -f "$PUBLIC_PAGE"
           test -f "$CATALOG_2"
+          test -f "$ROBOT_CATALOG"
           mkdir -p dist
           cp "$PUBLIC_PAGE" dist/index.html
 
-      - name: Merge catalogs into public page
+      - name: Merge all catalogs into public page
         shell: python
         run: |
           import json
           from pathlib import Path
 
           page = Path('dist/index.html')
-          catalog_path = Path('catalog/lote-02-plantas-medicinais.json')
           html = page.read_text(encoding='utf-8')
-          catalog = json.loads(catalog_path.read_text(encoding='utf-8'))
-          items = catalog.get('items', [])
 
-          if not isinstance(items, list):
-              raise SystemExit('O campo items do catálogo deve ser uma lista.')
+          def read_items(path):
+              data = json.loads(Path(path).read_text(encoding='utf-8'))
+              items = data.get('items', [])
+              if not isinstance(items, list):
+                  raise SystemExit(f'O campo items de {path} deve ser uma lista.')
+              return items
+
+          lote2 = read_items('catalog/lote-02-plantas-medicinais.json')
+          robot = read_items('catalog/robot-catalog.json')
 
           marker = '];let products=[...demo]'
           if marker not in html:
               raise SystemExit('Marcador do catálogo demo não encontrado em firebase-public-v2.html')
 
-          extra = json.dumps(items, ensure_ascii=False, separators=(',', ':'))
-          replacement = '];const lote2=' + extra + ';let products=[...demo,...lote2]'
+          extra2 = json.dumps(lote2, ensure_ascii=False, separators=(',', ':'))
+          extrar = json.dumps(robot, ensure_ascii=False, separators=(',', ':'))
+          replacement = '];const lote2=' + extra2 + ';const loteRobot=' + extrar + ';let products=[...demo,...lote2,...loteRobot]'
           html = html.replace(marker, replacement, 1)
           page.write_text(html, encoding='utf-8')
 
-          # Validação simples: a página publicada precisa conter todos os IDs do lote 2.
-          missing = [str(item.get('id')) for item in items if str(item.get('id')) not in html]
+          expected = lote2 + robot
+          missing = [str(item.get('id')) for item in expected if str(item.get('id')) not in html]
           if missing:
-              raise SystemExit(f'Itens do lote 2 ausentes na página: {missing}')
+              raise SystemExit(f'Itens ausentes na página publicada: {missing[:20]}')
 
-          print(f'Lote 2 incorporado: {len(items)} itens')
-          print(f'Página pública gerada: {page}')
+          print(f'Lote 2 incorporado: {len(lote2)} itens')
+          print(f'Catálogo do robô incorporado: {len(robot)} itens')
+          print(f'Total de itens anexados aos dados demo: {len(expected)}')
 
       - name: Validate public page
         shell: python
         run: |
           from pathlib import Path
           html = Path('dist/index.html').read_text(encoding='utf-8')
-          required = ['Guia Natural & Natura', 'catálogo público sem login', 'const lote2=', '...demo,...lote2']
+          required = ['Guia Natural & Natura', 'const lote2=', 'const loteRobot=', '...demo,...lote2,...loteRobot']
           missing = [x for x in required if x not in html]
           if missing:
               raise SystemExit(f'Validação da página pública falhou: {missing}')
-          print('Validação da página pública concluída.')
+          print('Página pública sem login validada com os três catálogos.')
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v4
