@@ -1,6 +1,13 @@
 name: Robô automático do catálogo
 
 on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'scripts/catalog_robot.py'
+      - 'catalog/robot-config.json'
+      - '.github/workflows/catalog-robot.yml'
   schedule:
     - cron: '17 6 * * 1,4'
   workflow_dispatch:
@@ -38,5 +45,5 @@ jobs:
             echo 'Nenhuma alteração no catálogo automático.'
             exit 0
           fi
-          git commit -m 'Atualiza catálogo automático'
+          git commit -m 'Atualiza catálogo automático via CBPM Fiocruz'
           git push
