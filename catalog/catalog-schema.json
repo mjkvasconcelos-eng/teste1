@@ -1,0 +1,32 @@
+{
+  "collection": "products",
+  "version": 1,
+  "fields": {
+    "name": {"type":"string","required":true,"label":"Nome do produto"},
+    "popularName": {"type":"string","required":true,"label":"Nome popular"},
+    "scientificName": {"type":"string","required":false,"label":"Nome científico"},
+    "brand": {"type":"string","required":false,"label":"Marca"},
+    "category": {"type":"enum","required":true,"values":["Raízes","Plantas medicinais","Ervas","Chás","Suplementos","Natura","Cuidados pessoais","Cosméticos","Óleos e extratos","Outros"]},
+    "usageType": {"type":"enum","required":true,"values":["Uso oral","Uso externo","Uso oral e externo","Não ingerir"]},
+    "imageUrl": {"type":"url","required":false,"label":"Foto"},
+    "description": {"type":"string","required":false,"label":"Descrição"},
+    "purpose": {"type":"string","required":false,"label":"Finalidade / uso tradicional"},
+    "usage": {"type":"string","required":false,"label":"Modo de uso"},
+    "ingestion": {"type":"string","required":false,"label":"Informação sobre ingestão"},
+    "ingredients": {"type":"array","required":false,"label":"Ingredientes / composição"},
+    "alerts": {"type":"string","required":false,"label":"Alertas"},
+    "contraindications": {"type":"string","required":false,"label":"Contraindicações"},
+    "adverseReactions": {"type":"string","required":false,"label":"Possíveis reações"},
+    "source": {"type":"string","required":true,"label":"Fonte"},
+    "sourceUrl": {"type":"url","required":false,"label":"URL da fonte"},
+    "sourceDate": {"type":"date","required":false,"label":"Data da fonte"},
+    "status": {"type":"enum","required":true,"values":["draft","published"]},
+    "updatedAt": {"type":"timestamp","required":false}
+  },
+  "rules": [
+    "Não atribuir a cosméticos uso oral.",
+    "Não apresentar prevenção, cura ou tratamento de doenças sem base regulatória e fonte apropriada.",
+    "Para plantas medicinais, registrar a fonte oficial e alertas disponíveis.",
+    "A página pública permanece sem login; autenticação fica restrita ao painel administrativo."
+  ]
+}
