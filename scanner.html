@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Leitor — Guia Natural & Natura</title>
+<style>
+body{font-family:system-ui,-apple-system,sans-serif;margin:0;background:#f4f8f4;color:#17321f}.wrap{max-width:760px;margin:auto;padding:20px}.card{background:white;border-radius:18px;padding:18px;box-shadow:0 4px 20px #0001;margin-bottom:16px}h1{font-size:24px}button{border:0;border-radius:12px;padding:13px 18px;font-weight:700;cursor:pointer;background:#287a45;color:white;margin:5px 4px 5px 0}.secondary{background:#e7efe9;color:#17321f}video{width:100%;border-radius:16px;background:#111;max-height:55vh;object-fit:cover}input{width:100%;box-sizing:border-box;padding:13px;border:1px solid #ccd8ce;border-radius:10px;margin:8px 0;font-size:16px}.status{padding:12px;border-radius:10px;background:#eef6ef;margin-top:10px}.hidden{display:none}.small{font-size:13px;color:#58705f}.result{line-height:1.55}
+</style></head>
+<body><div class="wrap">
+<div class="card"><h1>📷 Leitor de produtos e plantas</h1><p>Aponte a câmera para um rótulo, embalagem ou nome da planta. O leitor captura o texto para pesquisa.</p>
+<video id="video" autoplay playsinline muted></video>
+<div><button id="start">Abrir câmera</button><button id="capture" class="secondary" disabled>Capturar e ler</button><button id="stop" class="secondary" disabled>Parar</button></div>
+<canvas id="canvas" class="hidden"></canvas><div id="status" class="status">Aguardando câmera.</div></div>
+<div class="card"><h2>🔎 Busca manual</h2><input id="query" placeholder="Digite o nome popular ou científico"><button id="search">Pesquisar</button><div id="result"></div></div>
+<div class="card small">A leitura é informativa. Confirme a identificação antes de salvar. Não trata a imagem como diagnóstico nem substitui avaliação profissional.</div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+<script>
+const video=document.querySelector('#video'),canvas=document.querySelector('#canvas'),status=document.querySelector('#status'),capture=document.querySelector('#capture'),start=document.querySelector('#start'),stop=document.querySelector('#stop'),query=document.querySelector('#query'),result=document.querySelector('#result');let stream=null;
+function msg(x){status.textContent=x}
+start.onclick=async()=>{try{stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'}},audio:false});video.srcObject=stream;capture.disabled=false;stop.disabled=false;msg('Câmera ativa. Aponte para o nome do produto ou planta.')}catch(e){msg('Não foi possível abrir a câmera. Verifique a permissão do navegador.')}};
+stop.onclick=()=>{if(stream)stream.getTracks().forEach(t=>t.stop());stream=null;capture.disabled=true;stop.disabled=true;msg('Câmera parada.')};
+capture.onclick=async()=>{if(!stream)return;canvas.width=video.videoWidth;canvas.height=video.videoHeight;canvas.getContext('2d').drawImage(video,0,0);msg('Lendo o texto da imagem...');try{const {data}=await Tesseract.recognize(canvas,'por',{logger:m=>{if(m.status==='recognizing text')msg('Lendo texto: '+Math.round(m.progress*100)+'%')}});const text=data.text.replace(/\s+/g,' ').trim();query.value=text;msg(text?'Texto identificado. Confira e toque em Pesquisar.':'Não encontrei texto. Tente aproximar o rótulo e melhorar a iluminação.');}catch(e){msg('Erro na leitura. Tente novamente.')}};
+async function search(){const q=query.value.trim();if(!q){result.innerHTML='<p>Digite um nome para pesquisar.</p>';return}result.innerHTML='<p>Pesquisando fontes públicas...</p>';const wiki='https://pt.wikipedia.org/api/rest_v1/page/summary/'+encodeURIComponent(q.replace(/ /g,'_'));try{const r=await fetch(wiki);if(!r.ok)throw 0;const d=await r.json();result.innerHTML='<div class="result"><h3>'+esc(d.title||q)+'</h3><p>'+esc(d.extract||'Sem resumo disponível.')+'</p><p class="small">Fonte de identificação complementar: Wikipédia em português.</p><button onclick="saveDraft()">Salvar como rascunho</button></div>'}catch(e){result.innerHTML='<p>Não encontrei correspondência automática. Revise o nome e tente novamente.</p>'}}
+function saveDraft(){const item={id:'scan-'+Date.now(),name:query.value.trim(),description:'Registro criado pela câmera para revisão.',source:'Leitura por câmera — revisão necessária',status:'draft',autoCollected:false,updatedAt:new Date().toISOString()};const old=JSON.parse(localStorage.getItem('scannerDrafts')||'[]');old.push(item);localStorage.setItem('scannerDrafts',JSON.stringify(old));msg('Rascunho salvo neste dispositivo. Para publicar no catálogo, use o painel administrativo.');}
+function esc(s){return String(s).replace(/[&<>\"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\\':'&#92;'}[c]))}document.querySelector('#search').onclick=search;query.addEventListener('keydown',e=>{if(e.key==='Enter')search()});
+</script></body></html>
