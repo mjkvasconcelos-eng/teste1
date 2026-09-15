@@ -15,6 +15,10 @@ concurrency:
   group: pages
   cancel-in-progress: true
 
+env:
+  PUBLIC_PAGE: firebase-public-v2.html
+  CATALOG_2: catalog/lote-02-plantas-medicinais.json
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -33,26 +37,57 @@ jobs:
       - name: Build Vite app
         run: npm run build
 
-      - name: Use catalog public page
-        run: cp firebase-public-v2.html dist/index.html
-
-      - name: Inject second catalog batch into public page
+      - name: Prepare public page
+        shell: bash
         run: |
-          python - <<'PY'
+          set -euo pipefail
+          test -f "$PUBLIC_PAGE"
+          test -f "$CATALOG_2"
+          mkdir -p dist
+          cp "$PUBLIC_PAGE" dist/index.html
+
+      - name: Merge catalogs into public page
+        shell: python
+        run: |
           import json
           from pathlib import Path
+
           page = Path('dist/index.html')
-          catalog = json.loads(Path('catalog/lote-02-plantas-medicinais.json').read_text(encoding='utf-8'))
+          catalog_path = Path('catalog/lote-02-plantas-medicinais.json')
           html = page.read_text(encoding='utf-8')
+          catalog = json.loads(catalog_path.read_text(encoding='utf-8'))
+          items = catalog.get('items', [])
+
+          if not isinstance(items, list):
+              raise SystemExit('O campo items do catálogo deve ser uma lista.')
+
           marker = '];let products=[...demo]'
           if marker not in html:
-              raise SystemExit('Marcador do catálogo não encontrado')
-          extra = json.dumps(catalog['items'], ensure_ascii=False, separators=(',', ':'))
+              raise SystemExit('Marcador do catálogo demo não encontrado em firebase-public-v2.html')
+
+          extra = json.dumps(items, ensure_ascii=False, separators=(',', ':'))
           replacement = '];const lote2=' + extra + ';let products=[...demo,...lote2]'
           html = html.replace(marker, replacement, 1)
           page.write_text(html, encoding='utf-8')
-          print('Segundo lote injetado:', len(catalog['items']))
-          PY
+
+          # Validação simples: a página publicada precisa conter todos os IDs do lote 2.
+          missing = [str(item.get('id')) for item in items if str(item.get('id')) not in html]
+          if missing:
+              raise SystemExit(f'Itens do lote 2 ausentes na página: {missing}')
+
+          print(f'Lote 2 incorporado: {len(items)} itens')
+          print(f'Página pública gerada: {page}')
+
+      - name: Validate public page
+        shell: python
+        run: |
+          from pathlib import Path
+          html = Path('dist/index.html').read_text(encoding='utf-8')
+          required = ['Guia Natural & Natura', 'catálogo público sem login', 'const lote2=', '...demo,...lote2']
+          missing = [x for x in required if x not in html]
+          if missing:
+              raise SystemExit(f'Validação da página pública falhou: {missing}')
+          print('Validação da página pública concluída.')
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v4
