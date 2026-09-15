@@ -36,6 +36,23 @@ jobs:
       - name: Use catalog public page
         run: cp firebase-public-v2.html dist/index.html
 
+      - name: Inject catalog seed into public page
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          page = Path('dist/index.html')
+          catalog = json.loads(Path('catalog/lote-02-plantas-medicinais.json').read_text(encoding='utf-8'))
+          html = page.read_text(encoding='utf-8')
+          marker = '];let products='
+          if marker not in html:
+              raise SystemExit('Marcador do catálogo não encontrado')
+          extra = json.dumps(catalog['items'], ensure_ascii=False, separators=(',', ':'))
+          html = html.replace(marker, ']' + '+' + extra + ';let products=', 1)
+          page.write_text(html, encoding='utf-8')
+          print('Segundo lote injetado:', len(catalog['items']))
+          PY
+
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v4
         with:
