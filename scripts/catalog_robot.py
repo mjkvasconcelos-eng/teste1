@@ -6,29 +6,32 @@ from datetime import datetime, timezone
 ROOT = Path(__file__).resolve().parents[1]
 CONFIG = ROOT / 'catalog' / 'robot-config.json'
 OUTPUT = ROOT / 'catalog' / 'robot-catalog.json'
+UA = 'GuiaNaturalNaturaCatalogBot/1.1 (GitHub Actions)'
 
-UA = 'GuiaNaturalNaturaCatalogBot/1.0 (GitHub Actions)'
 
 def get_json(url):
     req = urllib.request.Request(url, headers={'User-Agent': UA, 'Accept': 'application/json'})
-    with urllib.request.urlopen(req, timeout=20) as r:
+    with urllib.request.urlopen(req, timeout=25) as r:
         return json.loads(r.read().decode('utf-8'))
 
+
 def wiki_summary(term):
-    title = urllib.parse.quote(term.replace(' ', '_'), safe='')
-    url = f'https://pt.wikipedia.org/api/rest_v1/page/summary/{title}'
-    try:
-        data = get_json(url)
-        if data.get('type') == 'standard':
-            return data
-    except Exception:
-        pass
+    for candidate in (term, term.title()):
+        title = urllib.parse.quote(candidate.replace(' ', '_'), safe='')
+        url = f'https://pt.wikipedia.org/api/rest_v1/page/summary/{title}'
+        try:
+            data = get_json(url)
+            if data.get('type') == 'standard':
+                return data
+        except Exception:
+            pass
     return None
 
+
 def commons_image(term):
-    q = urllib.parse.quote(f'{term} plant', safe='')
+    q = urllib.parse.quote(term, safe='')
     api = ('https://commons.wikimedia.org/w/api.php?action=query&format=json&generator=search'
-           f'&gsrsearch={q}&gsrnamespace=6&gsrlimit=5&prop=imageinfo&iiprop=url%7Cextmetadata'
+           f'&gsrsearch={q}&gsrnamespace=6&gsrlimit=10&prop=imageinfo&iiprop=url%7Cextmetadata'
            '&iiurlwidth=900')
     try:
         data = get_json(api)
@@ -51,9 +54,11 @@ def commons_image(term):
         pass
     return {}
 
+
 def slug(s):
     s = re.sub(r'[^a-z0-9]+', '-', s.lower().strip())
     return s.strip('-')
+
 
 def main():
     cfg = json.loads(CONFIG.read_text(encoding='utf-8'))
@@ -64,9 +69,13 @@ def main():
         except Exception:
             old = {}
 
+    if not cfg.get('enabled', True):
+        print('Robô desativado.')
+        return
+
     items = []
     seen = set()
-    max_items = int(cfg.get('maxItemsPerRun', 12))
+    max_items = int(cfg.get('maxItemsPerRun', 20))
 
     for category, terms in cfg.get('categories', {}).items():
         for term in terms:
@@ -78,24 +87,25 @@ def main():
             if sid in old:
                 item = old[sid]
                 item['category'] = category
+                item['updatedAt'] = datetime.now(timezone.utc).isoformat()
                 items.append(item)
                 continue
 
             summary = wiki_summary(term)
             if not summary:
+                print(f'Sem resultado na Wikipédia: {term}')
                 continue
             image = commons_image(term)
-            name = summary.get('title') or term.title()
             item = {
                 'id': sid,
-                'name': name,
+                'name': summary.get('title') or term.title(),
                 'popularName': term.title(),
                 'scientificName': '',
                 'category': category,
                 'usageType': 'Informativo; confirmar se o produto é para uso oral ou externo antes de utilizar',
                 'description': summary.get('extract', ''),
-                'purpose': 'Informação botânica e usos tradicionalmente descritos na fonte. Não constitui indicação de tratamento.',
-                'usage': 'Consultar a fonte oficial e a embalagem do produto antes de qualquer uso.',
+                'purpose': 'Informação botânica e usos descritos na fonte. Não constitui indicação de tratamento.',
+                'usage': 'Consultar fonte oficial e embalagem do produto antes de qualquer uso.',
                 'ingestion': 'Não informado automaticamente. Não ingerir com base apenas nesta página.',
                 'ingestible': False,
                 'ingredients': '',
@@ -107,7 +117,7 @@ def main():
                 'imageSourceUrl': image.get('imageSourceUrl', ''),
                 'imageLicense': image.get('imageLicense', ''),
                 'imageAuthor': image.get('imageAuthor', ''),
-                'source': 'Wikimedia Commons / Wikipédia em português',
+                'source': 'Wikipédia em português / Wikimedia Commons',
                 'sourceUrl': summary.get('content_urls', {}).get('desktop', {}).get('page', ''),
                 'updatedAt': datetime.now(timezone.utc).isoformat(),
                 'status': 'draft',
@@ -115,17 +125,14 @@ def main():
             }
             items.append(item)
 
-    # Preserve all previously collected items, then replace/update current batch.
     merged = dict(old)
     for item in items:
         merged[item['id']] = item
 
-    payload = {
-        'generatedAt': datetime.now(timezone.utc).isoformat(),
-        'items': list(merged.values())
-    }
+    payload = {'generatedAt': datetime.now(timezone.utc).isoformat(), 'items': list(merged.values())}
     OUTPUT.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding='utf-8')
     print(f'Robô: {len(items)} itens processados; {len(merged)} itens no catálogo automático.')
+
 
 if __name__ == '__main__':
     main()
