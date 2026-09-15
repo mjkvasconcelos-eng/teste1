@@ -1,16 +1,19 @@
 {
   "enabled": true,
   "publishAutomatically": false,
-  "maxItemsPerRun": 12,
+  "maxItemsPerRun": 20,
   "languages": ["pt"],
   "categories": {
-    "Raízes": ["gengibre", "cúrcuma", "alcaçuz", "valeriana"],
-    "Plantas medicinais": ["camomila", "alecrim", "guaco", "espinheira-santa", "carqueja", "cavalinha", "tanchagem", "malva", "mil-folhas", "mulungu", "pata-de-vaca", "quebra-pedra", "romã", "eucalipto", "alfavaca", "calêndula", "babosa", "hortelã", "funcho", "erva-cidreira"],
+    "Raízes": ["gengibre", "cúrcuma", "alcaçuz", "valeriana", "cana-do-brejo", "batata-de-morcego"],
+    "Plantas medicinais": ["camomila", "alecrim", "guaco", "espinheira-santa", "carqueja", "cavalinha", "tanchagem", "malva", "mil-folhas", "mulungu", "pata-de-vaca", "quebra-pedra", "romã", "eucalipto", "alfavaca", "calêndula", "babosa", "hortelã", "funcho", "erva-cidreira", "alcachofra", "amora", "andiroba", "pitangueira", "aroeira", "barbatimão", "jambolão"],
     "Ervas": ["sálvia", "manjericão", "orégano", "tomilho", "erva-doce"],
-    "Chás": ["camomila", "hortelã", "erva-cidreira", "hibisco", "chá-verde"]
+    "Chás": ["camomila", "hortelã", "erva-cidreira", "hibisco", "chá-verde"],
+    "Óleos e extratos": ["andiroba", "alecrim", "calêndula"]
   },
   "sources": {
     "text": "https://pt.wikipedia.org/",
-    "images": "https://commons.wikimedia.org/"
+    "images": "https://commons.wikimedia.org/",
+    "officialHealth": "https://www.gov.br/saude/pt-br/composicao/sectics/plantas-medicinais-e-fitoterapicos",
+    "anvisa": "https://www.gov.br/anvisa/pt-br/assuntos/farmacopeia/formulario-de-fitoterapicos"
   }
 }
