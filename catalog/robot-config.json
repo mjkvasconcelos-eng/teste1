@@ -1,0 +1,16 @@
+{
+  "enabled": true,
+  "publishAutomatically": false,
+  "maxItemsPerRun": 12,
+  "languages": ["pt"],
+  "categories": {
+    "Raízes": ["gengibre", "cúrcuma", "alcaçuz", "valeriana"],
+    "Plantas medicinais": ["camomila", "alecrim", "guaco", "espinheira-santa", "carqueja", "cavalinha", "tanchagem", "malva", "mil-folhas", "mulungu", "pata-de-vaca", "quebra-pedra", "romã", "eucalipto", "alfavaca", "calêndula", "babosa", "hortelã", "funcho", "erva-cidreira"],
+    "Ervas": ["sálvia", "manjericão", "orégano", "tomilho", "erva-doce"],
+    "Chás": ["camomila", "hortelã", "erva-cidreira", "hibisco", "chá-verde"]
+  },
+  "sources": {
+    "text": "https://pt.wikipedia.org/",
+    "images": "https://commons.wikimedia.org/"
+  }
+}
